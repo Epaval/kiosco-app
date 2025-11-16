@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+ ## Para las migraciones
+ npx prisma migrate dev
+ ## Abrir la conslo de Prisma Studio
+ npx prisma studio
 
-## Getting Started
+ ## Comenzar el proyecto 
+ npm run dev
 
-First, run the development server:
+ ## Para insertar multiples valores a la base de datos 
+ npx prisma db seed
+ ? Debes crear el archivo en carpeta prisma los archivos .ts con los datos a insertar
+ y en prisma.confg.ts incluir el seed
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+ """
+ import { defineConfig, env } from "prisma/config";
+import "dotenv/config"
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts" # esta linea es importante
+  },
+  engine: "classic",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+});
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ """ 
+ 
+ """
+ import { categories } from "./data/categories";
+import { products } from "./data/products";
+import { PrismaClient} from "@/src/generated/prisma/client";
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+const prisma = new PrismaClient()
 
-## Learn More
+async function main() {
 
-To learn more about Next.js, take a look at the following resources:
+    try {
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+        await prisma.category.createMany({
+            data: categories
+        })
+        await prisma.product.createMany({
+            data: products
+        })
+        console.log("Seed Ejecutado Correctamente")
+        
+    } catch (error) {
+        console.log(error)
+    }
+    
+}
+main()
+    .then( async () => {
+        await prisma.$disconnect
+    })
+    .catch(async (e) => {
+        console.error(e)
+        await prisma.$disconnect
+        process.exit(1)
+    })
+ """
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ ## Para resetear los datos en la BD 
+ npx prisma migrate reset
