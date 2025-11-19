@@ -66,3 +66,24 @@ main()
 
  ## Para resetear los datos en la BD 
  npx prisma migrate reset
+
+ ## Dependencias
+├── @heroicons/react@2.2.0
+├── @prisma/client@6.19.0
+├── @types/node@20.19.25
+├── @types/react-dom@18.3.7
+├── @types/react@18.3.26
+├── dotenv@17.2.3
+├── eslint-config-next@14.2.33
+├── eslint@8.57.1
+├── next@14.2.33
+├── postcss@8.5.6
+├── prisma@6.19.0
+├── react-dom@18.3.1
+├── react-toastify@11.0.5
+├── react@18.3.1
+├── tailwindcss@3.4.18
+├── tsx@4.20.6
+├── typescript@5.9.3
+├── zod@4.1.12
+└── zustand@5.0.8
