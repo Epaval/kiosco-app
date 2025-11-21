@@ -1,7 +1,5 @@
  'use client'
-
-import { ProductsWithCategory } from "@/app/admin/products/page";
-import { Product } from "@/src/generated/prisma/client";
+import { ProductsWithCategory } from "@/app/admin/products/page"; 
 import { formatCurrency } from "@/src/utils";
 import Link from "next/link";
 import { useState, useMemo } from "react";
@@ -53,7 +51,7 @@ export default function ProductTable({ products, allProducts }: ProductTableProp
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <Link
-            href="/admin/products/create"
+            href="/admin/products/new"
             className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
