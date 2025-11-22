@@ -46,7 +46,7 @@ export default function AddProductForm() {
           text: result.message || '✅ Producto creado exitosamente!' 
         })
         
-        // Usar formRef en lugar de e.currentTarget para resetear
+         
         if (formRef.current) {
           formRef.current.reset()
         }
@@ -147,7 +147,7 @@ export default function AddProductForm() {
         ref={formRef}
         className="space-y-8" 
         onSubmit={handleSubmit}
-        key={message?.type === 'success' ? 'reset-form' : 'current-form'} // Force re-render on success
+        key={message?.type === 'success' ? 'reset-form' : 'current-form'}  
       >
         <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 border border-gray-200">
           <ProductForm/>

@@ -20,7 +20,7 @@ export const OrderSchema = z.object({
     }))    
 })
 
-export const ProductSchema = z.object({
+ export const ProductSchema = z.object({
     name: z.string()
         .trim()
         .min(1, { message: 'El Nombre del Producto no puede ir vacio'}),
@@ -34,4 +34,7 @@ export const ProductSchema = z.object({
         .transform((value) => parseInt(value)) 
         .refine((value) => value > 0, { message: 'La Categoría es Obligatoria' })
         .or(z.number().min(1, {message: 'La Categoría es Obligatoria' })),
+    image: z.string()
+        .url({ message: 'La URL de la imagen no es válida' })
+        .min(1, { message: 'La imagen es obligatoria' })
 })

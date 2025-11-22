@@ -1,6 +1,7 @@
  'use client'
 
 import { useEffect, useState } from "react"
+import ImageUploader from "./ImageUploader"
 
 type Category = {
   id: number
@@ -8,10 +9,16 @@ type Category = {
   slug: string
 }
 
-export default function ProductForm() {
+type ProductFormProps = {
+  fieldErrors?: Record<string, string>
+  onClearError?: (fieldName: string) => void
+}
+
+export default function ProductForm({ fieldErrors = {}, onClearError }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState('')
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -32,6 +39,13 @@ export default function ProductForm() {
 
     fetchCategories()
   }, [])
+
+  const handleInputChange = (fieldName: string) => {
+    // Limpiar error cuando el usuario empiece a escribir
+    if (fieldErrors[fieldName] && onClearError) {
+      onClearError(fieldName)
+    }
+  }
 
   if (loading) {
     return (
@@ -86,20 +100,30 @@ export default function ProductForm() {
             id="name"
             type="text"
             name="name"
-            className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
+            className={`block w-full p-4 pl-12 border-2 rounded-xl bg-white 
                      focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
                      transition-all duration-300 shadow-sm
                      placeholder:text-gray-400
-                     group-hover:border-gray-300"
+                     group-hover:border-gray-300
+                     ${fieldErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             placeholder="Ej: Hamburguesa Clásica"
             required
+            onChange={() => handleInputChange('name')}
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 ${fieldErrors.name ? 'text-red-500' : 'text-gray-400 group-focus-within:text-blue-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
         </div>
+        {fieldErrors.name && (
+          <p className="text-red-600 text-sm mt-2 flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {fieldErrors.name}
+          </p>
+        )}
       </div>
 
       {/* Campo Precio */}
@@ -121,21 +145,31 @@ export default function ProductForm() {
             type="number"
             step="0.01"
             min="0"
-            className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
+            className={`block w-full p-4 pl-12 border-2 rounded-xl bg-white 
                      focus:border-green-500 focus:ring-4 focus:ring-green-100 
                      transition-all duration-300 shadow-sm
                      placeholder:text-gray-400
-                     group-hover:border-gray-300"
+                     group-hover:border-gray-300
+                     ${fieldErrors.price ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             placeholder="0.00"
             required
+            onChange={() => handleInputChange('price')}
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <span className="text-gray-400 group-focus-within:text-green-500 font-medium">$</span>
+            <span className={`${fieldErrors.price ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'} font-medium`}>$</span>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center pr-4">
             <span className="text-gray-400 text-sm">USD</span>
           </div>
         </div>
+        {fieldErrors.price && (
+          <p className="text-red-600 text-sm mt-2 flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {fieldErrors.price}
+          </p>
+        )}
       </div>
 
       {/* Campo Categoría */}
@@ -152,24 +186,25 @@ export default function ProductForm() {
         </label>
         <div className="relative">
           <select
-            className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
+            className={`block w-full p-4 pl-12 border-2 rounded-xl bg-white 
                      focus:border-purple-500 focus:ring-4 focus:ring-purple-100 
                      transition-all duration-300 shadow-sm appearance-none
-                     group-hover:border-gray-300 cursor-pointer"
+                     group-hover:border-gray-300 cursor-pointer
+                     ${fieldErrors.categoryId ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             id="categoryId"
             name="categoryId"
             required
+            onChange={() => handleInputChange('categoryId')}
           >
             <option value="">-- Seleccione una categoría --</option>
             {categories.map(category => (
-              <option key={category.id} 
-               value={category.id}>
-               {category.name}
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 ${fieldErrors.categoryId ? 'text-red-500' : 'text-gray-400 group-focus-within:text-purple-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
@@ -179,55 +214,26 @@ export default function ProductForm() {
             </svg>
           </div>
         </div>
+        {fieldErrors.categoryId && (
+          <p className="text-red-600 text-sm mt-2 flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {fieldErrors.categoryId}
+          </p>
+        )}
       </div>
 
-      {/* Campo Imagen */}
-      <div className="group">
-        <label
-          className="text-sm font-semibold text-gray-800 mb-3 flex items-center"
-          htmlFor="image"
-        >
-          <svg className="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Imagen
-          <span className="text-red-500 ml-1">*</span>
-        </label>
-        <div className="relative">
-          <input
-            id="image"
-            name="image"
-            type="text"
-            className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
-                     focus:border-orange-500 focus:ring-4 focus:ring-orange-100 
-                     transition-all duration-300 shadow-sm
-                     placeholder:text-gray-400
-                     group-hover:border-gray-300"
-            placeholder="hamburguesa-clasica.jpg"
-            required
-          />
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-          </div>
-        </div>
-        <div className="mt-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-4 border border-orange-100">
-          <div className="flex items-start space-x-3">
-            <div className="bg-orange-100 p-2 rounded-full flex-shrink-0">
-              <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-orange-800 font-medium text-sm">Formato de imagen</p>
-              <p className="text-orange-700 text-sm mt-1">
-                Solo el nombre del archivo. Ejemplo: <span className="font-mono bg-orange-200 px-2 py-1 rounded">hamburguesa-clasica.jpg</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Campo Imagen con Bytescale */}
+      <ImageUploader
+        onImageUpload={(url) => {
+          setImageUrl(url)
+          if (onClearError) onClearError('image')
+        }}
+        currentImage={imageUrl}
+        fieldError={fieldErrors.image}
+        onClearError={() => onClearError?.('image')}
+      />
 
       {/* Indicador de campos requeridos */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">

@@ -1,6 +1,6 @@
- import { Product } from "@/src/generated/prisma/client"
+"use client"
+import { Product } from "@/src/generated/prisma/client"
 import { formatCurrency } from "@/src/utils"
-import Image from "next/image"
 import AddProductButton from "./AddProductButton"
 
 type ProductCardProps = {
@@ -14,13 +14,34 @@ export default function ProductCard({ product }: ProductCardProps) {
             {/* Imagen */}
             <div className="relative overflow-hidden flex-shrink-0">
                 <div className="w-full pt-[75%] relative">
-                    <Image
-                        fill
-                        src={`/products/${product.image}.jpg`}
-                        alt={`Imagen del platillo ${product.name}`}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
+                    {product.image ? (
+                        <img
+                            src={product.image}
+                            alt={`Imagen del platillo ${product.name}`}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            onError={(e) => {
+                                 
+                                e.currentTarget.style.display = 'none'
+                                const parent = e.currentTarget.parentElement
+                                if (parent) {
+                                    parent.innerHTML = `
+                                        <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                    `
+                                }
+                            }}
+                        />
+                    ) : (
+                        // Estado cuando no hay imagen
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    )}
                 </div>
             </div>
 
