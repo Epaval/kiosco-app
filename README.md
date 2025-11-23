@@ -8,7 +8,7 @@
 
  ## Para insertar multiples valores a la base de datos 
  npx prisma db seed
- ? Debes crear el archivo en carpeta prisma los archivos .ts con los datos a insertar
+ ? Debes crear el archivo en la carpeta prisma los archivos .ts con los datos a insertar
  y en prisma.confg.ts incluir el seed
 
  """

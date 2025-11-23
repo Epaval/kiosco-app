@@ -1,83 +1,78 @@
  'use client'
 
 import ProductForm from "./ProductForm"
-import { useState, useRef } from "react"
-
+import { useState, useRef} from "react"
+ 
 export default function AddProductForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setMessage(null)
+  e.preventDefault()
+  setIsSubmitting(true)
+  setMessage(null)
 
-    const formData = new FormData(e.currentTarget)
-    
-    // Convertir datos
-    const formDataObject = Object.fromEntries(formData)
-    console.log('📤 Enviando datos del formulario:', formDataObject)
-    
-    try {
-      const response = await fetch('/api/products', {
+  const formData = new FormData(e.currentTarget)
+
+  const name = formData.get('name')?.toString()?.trim()
+  const price = formData.get('price')?.toString()?.trim()
+  const categoryId = formData.get('categoryId')?.toString()?.trim()
+  const imageFile = formData.get('image') as File | null
+
+  // Validación básica
+  if (!name || !price || !categoryId || !imageFile) {
+    setMessage({ type: 'error', text: 'Todos los campos son obligatorios' })
+    setIsSubmitting(false)
+    return
+  }
+
+  try {
+    const originalName = imageFile.name
+      const imageResponse = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'x-file-name': originalName,  
         },
-        body: JSON.stringify(formDataObject)
+        body: imageFile,
       })
 
-      console.log('📥 Respuesta del servidor - Status:', response.status)
-      console.log('📥 Respuesta del servidor - OK:', response.ok)
-
-      // Verificar si la respuesta es JSON válido
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Respuesta del servidor no es JSON válido')
-      }
-
-      const result = await response.json()
-      console.log('📥 Resultado completo:', result)
-
-      if (response.ok && result.success) {
-        setMessage({ 
-          type: 'success', 
-          text: result.message || '✅ Producto creado exitosamente!' 
-        })
-        
-        // Usar formRef en lugar de e.currentTarget para resetear
-        if (formRef.current) {
-          formRef.current.reset()
-        }
-        
-      } else {
-        setMessage({ 
-          type: 'error', 
-          text: result.error || `❌ Error ${response.status}: No se pudo crear el producto` 
-        })
-      }
-    } catch (error: any) {
-      console.error('❌ Error completo en el cliente:', error)
-      
-      let errorMessage = 'Error de conexión. Verifica que el servidor esté funcionando.'
-      
-      if (error.name === 'TypeError' && error.message.includes('JSON')) {
-        errorMessage = 'Error en el formato de respuesta del servidor.'
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage = 'No se pudo conectar con el servidor.'
-      } else if (error.name === 'TypeError' && error.message.includes('reset')) {
-        errorMessage = 'Error al procesar el formulario. El producto se creó correctamente.'
-      }
-      
-      setMessage({ 
-        type: 'error', 
-        text: errorMessage 
-      })
-    } finally {
-      setIsSubmitting(false)
+    if (!imageResponse.ok) {
+      const errorData = await imageResponse.json()
+      throw new Error(errorData.error || 'Error al subir la imagen')
     }
+
+    const { url: imageUrl } = await imageResponse.json()
+
+    // ✅ Paso 2: Enviar los datos del producto con la URL de la imagen
+    const productResponse = await fetch('/api/products', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        price,
+        categoryId,
+        image: imageUrl, // ✅ URL completa desde Vercel Blob
+      }),
+    })
+
+    const result = await productResponse.json()
+
+    if (productResponse.ok && result.success) {
+      setMessage({ type: 'success', text: 'Producto creado exitosamente!' })
+      if (formRef.current) formRef.current.reset()
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Error al crear el producto' })
+    }
+  } catch (error: any) {
+    console.error('❌ Error en cliente:', error)
+    setMessage({ type: 'error', text: error.message || 'Error de conexión. Verifica que el servidor esté funcionando.' })
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   const clearForm = () => {
     if (formRef.current) {
@@ -147,10 +142,9 @@ export default function AddProductForm() {
         ref={formRef}
         className="space-y-8" 
         onSubmit={handleSubmit}
-        key={message?.type === 'success' ? 'reset-form' : 'current-form'} // Force re-render on success
       >
         <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 border border-gray-200">
-          <ProductForm/>
+          <ProductForm />
         </div>
         
         <div className="flex justify-center pt-6">

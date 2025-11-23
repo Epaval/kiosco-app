@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
     
-    console.log('📦 Datos recibidos para crear producto:', data)
+     
 
     // Validar datos básicos
     if (!data.name || !data.price || !data.categoryId || !data.image) {
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log('✅ Producto creado exitosamente:', product)
+    
 
     // Respuesta de éxito
     return new Response(

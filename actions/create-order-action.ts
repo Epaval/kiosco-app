@@ -162,7 +162,7 @@ ${productsText}
         
         // En producción, podrías hacer una petición HTTP aquí
         // Para desarrollo, simplemente logueamos el enlace
-        console.log('WhatsApp URL:', whatsappUrl)
+        //console.log('WhatsApp URL:', whatsappUrl)
         
         // En un entorno de producción, podrías usar:
         // await fetch(whatsappUrl) o integrar con la API de WhatsApp Business

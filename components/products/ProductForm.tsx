@@ -1,46 +1,174 @@
- 'use client'
+// ProductForm.tsx
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
+import { put } from "@vercel/blob";
 
 type Category = {
-  id: number
-  name: string
-  slug: string
-}
+  id: number;
+  name: string;
+  slug: string;
+};
 
-export default function ProductForm() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default function ProductForm({
+  onMessage,
+  onReset,
+}: {
+  onMessage?: (msg: { type: "success" | "error"; text: string }) => void;
+  onReset?: () => void;
+}) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string>("");
+  const [file, setFile] = useState<File | null>(null);
+
+  // Estado para manejar errores de subida
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/categories')
+        const response = await fetch("/api/categories");
         if (!response.ok) {
-          throw new Error('Error al cargar categorías')
+          throw new Error("Error al cargar categorías");
         }
-        const data = await response.json()
-        setCategories(data)
+        const data = await response.json();
+        setCategories(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-        console.error('Error fetching categories:', err)
+        setError(err instanceof Error ? err.message : "Error desconocido");
+        console.error("Error fetching categories:", err);
       } finally {
-        setLoading(false)
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Manejar cambio de archivo
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setImageName(selectedFile.name);
+    setImagePreview(URL.createObjectURL(selectedFile));
+    setUploadError(null);
+    setUploadSuccess(false);
+  };
+
+  const uploadImage = async () => {
+    if (!file) return imageName; // Si no hay archivo, usa el nombre (ej: "hamburguesa.jpg")
+
+    try {
+      const url = await put(`img-minuto-cero/${file.name}`, file, {
+        access: "public",
+      });
+
+      setUploadSuccess(true);
+      setUploadError(null);
+       
+      return url.url; // Devuelve la URL completa (como string)
+    } catch (err) {
+      setUploadError("Error al subir la imagen. Inténtalo nuevamente.");     
+      return imageName; // Si falla, devuelve el nombre del archivo (para guardar en DB)
+    }
+  };
+
+  // Renderizar vista de previsualización
+  const renderImagePreview = () => {
+    if (!imagePreview) return null;
+
+    return (
+      <div className="mt-3 relative">
+        <div className="w-full h-64 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
+          <img
+            src={imagePreview}
+            alt="Previsualización"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+        <button
+          onClick={() => {
+            setImagePreview(null);
+            setImageName("");
+            setFile(null);
+          }}
+          className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+        >
+          Eliminar imagen
+        </button>
+      </div>
+    );
+  };
+
+  // Manejar envío del formulario
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const name = formData.get("name") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const categoryId = parseInt(formData.get("categoryId") as string, 10);
+    const imageName = formData.get("imageName") as string;
+
+    // Validación básica
+    if (!name || !price || !categoryId || !imageName) {
+      onMessage?.({ type: "error", text: "Todos los campos son obligatorios" });
+      return;
+    }
+
+    // Si hay archivo, subirlo antes de enviar
+    let imageUrl = imageName; // Usar el nombre si no hay archivo nuevo
+    if (file) {
+      try {
+        imageUrl = await uploadImage(); // Sube la imagen
+      } catch (err) {
+        onMessage?.({ type: "error", text: "Error al subir la imagen" });
+        return;
       }
     }
 
-    fetchCategories()
-  }, [])
+    // Enviar datos a la API
+    try {
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          price,
+          categoryId,
+          image: imageUrl, // Usa la URL o el nombre del archivo
+        }),
+      });
+
+      if (response.ok) {
+        onMessage?.({ type: "success", text: "Producto creado exitosamente!" });
+        onReset?.(); // Limpia el formulario
+      } else {
+        onMessage?.({ type: "error", text: "Error al crear el producto" });
+      }
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      onMessage?.({ type: "error", text: "Ocurrió un error inesperado" });
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-        <span className="text-gray-700 font-medium">Cargando categorías...</span>
+        <span className="text-gray-700 font-medium">
+          Cargando categorías...
+        </span>
         <p className="text-sm text-gray-500 mt-2">Preparando el formulario</p>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -48,14 +176,26 @@ export default function ProductForm() {
       <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-6 shadow-lg">
         <div className="flex items-start space-x-3">
           <div className="bg-red-100 p-2 rounded-full">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-6 h-6 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           <div>
-            <h3 className="text-red-800 font-semibold text-lg">Error al cargar</h3>
+            <h3 className="text-red-800 font-semibold text-lg">
+              Error al cargar
+            </h3>
             <p className="text-red-700 mt-1">{error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
             >
@@ -64,19 +204,30 @@ export default function ProductForm() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="space-y-6">
+     
+     <div className="space-y-6">
       {/* Campo Nombre */}
       <div className="group">
         <label
           className="text-sm font-semibold text-gray-800 mb-3 flex items-center"
           htmlFor="name"
         >
-          <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          <svg
+            className="w-5 h-5 text-blue-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
           </svg>
           Nombre del Producto
           <span className="text-red-500 ml-1">*</span>
@@ -95,8 +246,18 @@ export default function ProductForm() {
             required
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            <svg
+              className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+              />
             </svg>
           </div>
         </div>
@@ -108,8 +269,18 @@ export default function ProductForm() {
           className="text-sm font-semibold text-gray-800 mb-3 flex items-center"
           htmlFor="price"
         >
-          <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+          <svg
+            className="w-5 h-5 text-green-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+            />
           </svg>
           Precio
           <span className="text-red-500 ml-1">*</span>
@@ -130,7 +301,9 @@ export default function ProductForm() {
             required
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <span className="text-gray-400 group-focus-within:text-green-500 font-medium">$</span>
+            <span className="text-gray-400 group-focus-within:text-green-500 font-medium">
+              $
+            </span>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center pr-4">
             <span className="text-gray-400 text-sm">USD</span>
@@ -144,8 +317,18 @@ export default function ProductForm() {
           className="text-sm font-semibold text-gray-800 mb-3 flex items-center"
           htmlFor="categoryId"
         >
-          <svg className="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          <svg
+            className="w-5 h-5 text-purple-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+            />
           </svg>
           Categoría
           <span className="text-red-500 ml-1">*</span>
@@ -161,21 +344,40 @@ export default function ProductForm() {
             required
           >
             <option value="">-- Seleccione una categoría --</option>
-            {categories.map(category => (
-              <option key={category.id} 
-               value={category.id}>
-               {category.name}
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg
+              className="w-5 h-5 text-gray-400 group-focus-within:text-purple-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
@@ -187,43 +389,100 @@ export default function ProductForm() {
           className="text-sm font-semibold text-gray-800 mb-3 flex items-center"
           htmlFor="image"
         >
-          <svg className="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-5 h-5 text-orange-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
           Imagen
           <span className="text-red-500 ml-1">*</span>
         </label>
-        <div className="relative">
-          <input
-            id="image"
-            name="image"
-            type="text"
-            className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
-                     focus:border-orange-500 focus:ring-4 focus:ring-orange-100 
-                     transition-all duration-300 shadow-sm
-                     placeholder:text-gray-400
-                     group-hover:border-gray-300"
-            placeholder="hamburguesa-clasica.jpg"
-            required
-          />
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-          </div>
-        </div>
-        <div className="mt-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-4 border border-orange-100">
-          <div className="flex items-start space-x-3">
-            <div className="bg-orange-100 p-2 rounded-full flex-shrink-0">
-              <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+
+        <div className="space-y-3">
+          {/* Input de archivo */}
+          <div className="relative">
+            <input
+              id="image"
+              name="image"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="block w-full p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white 
+                       focus:border-orange-500 focus:ring-4 focus:ring-orange-100 
+                       transition-all duration-300 shadow-sm
+                       placeholder:text-gray-400
+                       group-hover:border-gray-300"
+              required
+            />
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+              <svg
+                className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
               </svg>
             </div>
-            <div>
-              <p className="text-orange-800 font-medium text-sm">Formato de imagen</p>
-              <p className="text-orange-700 text-sm mt-1">
-                Solo el nombre del archivo. Ejemplo: <span className="font-mono bg-orange-200 px-2 py-1 rounded">hamburguesa-clasica.jpg</span>
-              </p>
+          </div>
+
+          {/* Previsualización */}
+          {renderImagePreview()}
+
+          {/* Mensaje de éxito/error */}
+          {uploadSuccess && (
+            <span className="text-green-600 text-sm font-medium">
+              Imagen subida correctamente
+            </span>
+          )}
+          {uploadError && (
+            <span className="text-red-600 text-sm font-medium">
+              {uploadError}
+            </span>
+          )}
+
+          {/* Instrucciones */}
+          <div className="mt-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-4 border border-orange-100">
+            <div className="flex items-start space-x-3">
+              <div className="bg-orange-100 p-2 rounded-full flex-shrink-0">
+                <svg
+                  className="w-4 h-4 text-orange-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-orange-800 font-medium text-sm">
+                  Formato de imagen
+                </p>
+                <p className="text-orange-700 text-sm mt-1">
+                  Solo archivos JPG, PNG, WebP. Ejemplo:{" "}
+                  <span className="font-mono bg-orange-200 px-2 py-1 rounded">
+                    hamburguesa-clasica.jpg
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -232,12 +491,23 @@ export default function ProductForm() {
       {/* Indicador de campos requeridos */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
         <p className="text-blue-800 text-sm flex items-center">
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <svg
+            className="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+            />
           </svg>
-          Los campos marcados con <span className="text-red-500 mx-1">*</span> son obligatorios
+          Los campos marcados con <span className="text-red-500 mx-1">*</span>{" "}
+          son obligatorios
         </p>
       </div>
-    </div>
-  )
+     </div>
+  );
 }

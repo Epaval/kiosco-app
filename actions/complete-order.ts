@@ -17,7 +17,7 @@ export async function handleMarkAsReady(orderId: number) {
     // Retornar éxito para recargar la página
     return { success: true }
   } catch (error) {
-    console.log(error)
+     
     return { success: false, error: 'No se pudo actualizar la orden' }
   }
 }
