@@ -91,13 +91,14 @@ export default function OrderCard({ order }: OrderCardProps) {
         </h4>
         <div className="space-y-3">
           {order.orderProducts.map((item) => (
+            console.log('Imagen en DB:', item.product.image),
             <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
               <div className="flex items-center space-x-3">
                 <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-200 group">
                   <Image
                     fill
-                    src={`/products/${item.product.image}.jpg`}
-                    alt={`Imagen del platillo ${item.product.name}`}
+                    src={item.product.image}  
+                    alt={item.product.name}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />

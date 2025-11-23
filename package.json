@@ -31,5 +31,13 @@
     "tailwindcss": "^3.4.1",
     "tsx": "^4.20.6",
     "typescript": "^5"
+  },
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "regla-problematica": "off",
+    "no-unused-vars": "warn"
   }
 }
+
+  
+

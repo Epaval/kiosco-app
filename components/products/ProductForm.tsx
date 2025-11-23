@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { put } from "@vercel/blob";
+import Image from "next/image";
+ 
 
 type Category = {
   id: number;
@@ -10,9 +11,8 @@ type Category = {
   slug: string;
 };
 
-export default function ProductForm({
-  onMessage,
-  onReset,
+export default function ProductForm({  
+  
 }: {
   onMessage?: (msg: { type: "success" | "error"; text: string }) => void;
   onReset?: () => void;
@@ -21,8 +21,8 @@ export default function ProductForm({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageName, setImageName] = useState<string>("");
-  const [file, setFile] = useState<File | null>(null);
+  const [setImageName] = useState<string>("");
+  const [setFile] = useState<File | null>(null);
 
   // Estado para manejar errores de subida
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -37,9 +37,9 @@ export default function ProductForm({
         }
         const data = await response.json();
         setCategories(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error desconocido");
-        console.error("Error fetching categories:", err);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Error desconocido");
+        console.error("Error fetching categories:", error);
       } finally {
         setLoading(false);
       }
@@ -51,31 +51,11 @@ export default function ProductForm({
   // Manejar cambio de archivo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    if (!selectedFile) return; 
 
-    setFile(selectedFile);
-    setImageName(selectedFile.name);
     setImagePreview(URL.createObjectURL(selectedFile));
     setUploadError(null);
     setUploadSuccess(false);
-  };
-
-  const uploadImage = async () => {
-    if (!file) return imageName; // Si no hay archivo, usa el nombre (ej: "hamburguesa.jpg")
-
-    try {
-      const url = await put(`img-minuto-cero/${file.name}`, file, {
-        access: "public",
-      });
-
-      setUploadSuccess(true);
-      setUploadError(null);
-       
-      return url.url; // Devuelve la URL completa (como string)
-    } catch (err) {
-      setUploadError("Error al subir la imagen. Inténtalo nuevamente.");     
-      return imageName; // Si falla, devuelve el nombre del archivo (para guardar en DB)
-    }
   };
 
   // Renderizar vista de previsualización
@@ -85,7 +65,8 @@ export default function ProductForm({
     return (
       <div className="mt-3 relative">
         <div className="w-full h-64 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
-          <img
+          <Image
+            fill
             src={imagePreview}
             alt="Previsualización"
             className="max-w-full max-h-full object-contain"
@@ -94,8 +75,7 @@ export default function ProductForm({
         <button
           onClick={() => {
             setImagePreview(null);
-            setImageName("");
-            setFile(null);
+            
           }}
           className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
         >
@@ -105,59 +85,7 @@ export default function ProductForm({
     );
   };
 
-  // Manejar envío del formulario
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const name = formData.get("name") as string;
-    const price = parseFloat(formData.get("price") as string);
-    const categoryId = parseInt(formData.get("categoryId") as string, 10);
-    const imageName = formData.get("imageName") as string;
-
-    // Validación básica
-    if (!name || !price || !categoryId || !imageName) {
-      onMessage?.({ type: "error", text: "Todos los campos son obligatorios" });
-      return;
-    }
-
-    // Si hay archivo, subirlo antes de enviar
-    let imageUrl = imageName; // Usar el nombre si no hay archivo nuevo
-    if (file) {
-      try {
-        imageUrl = await uploadImage(); // Sube la imagen
-      } catch (err) {
-        onMessage?.({ type: "error", text: "Error al subir la imagen" });
-        return;
-      }
-    }
-
-    // Enviar datos a la API
-    try {
-      const response = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          price,
-          categoryId,
-          image: imageUrl, // Usa la URL o el nombre del archivo
-        }),
-      });
-
-      if (response.ok) {
-        onMessage?.({ type: "success", text: "Producto creado exitosamente!" });
-        onReset?.(); // Limpia el formulario
-      } else {
-        onMessage?.({ type: "error", text: "Error al crear el producto" });
-      }
-    } catch (err) {
-      console.error("Error submitting form:", err);
-      onMessage?.({ type: "error", text: "Ocurrió un error inesperado" });
-    }
-  };
+   
 
   if (loading) {
     return (

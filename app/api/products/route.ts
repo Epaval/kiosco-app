@@ -1,5 +1,5 @@
  import { prisma } from "@/src/lib/prisma"
-import { NextResponse } from "next/server"
+ 
 
 export async function POST(request: Request) {
   try {
@@ -108,6 +108,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('❌ Error completo al crear producto:', error)
+
+    
     
     // Manejar errores específicos de Prisma
     if (error.code === 'P2002') {
