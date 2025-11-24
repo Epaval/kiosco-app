@@ -37,7 +37,7 @@ export default function Home() {
 
       {/* Footer simple */}
       <footer className="py-6 text-center text-gray-600">
-        © 2025 FastBite. Todos los derechos reservados.
+        © 2025 MinutoCero. Todos los derechos reservados.
       </footer>
     </div>
   );
